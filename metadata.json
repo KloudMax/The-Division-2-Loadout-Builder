@@ -1,0 +1,6 @@
+{
+  "name": "The Division 2 Loadout Builder",
+  "description": "A tool to theory-craft builds for The Division 2, allowing selection of gear, brands, attributes, and talents to see an overview of the resulting stats. This application helps players plan their character builds by visualizing the impact of different gear choices.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
