@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Loadout, SelectedGearPiece, GearSlotId, ModalState, SelectedModSlot,
   SkillNameId, SelectedSkillState, WeaponSlotId, SelectedWeaponState,
@@ -24,6 +24,8 @@ import StatsDisplay from './components/StatsDisplay';
 import LoadoutActions from './components/LoadoutActions';
 import SelectorModal from './components/SelectorModal';
 import { useCalculatedStats } from './hooks/useCalculatedStats';
+
+const LOCALSTORAGE_KEY = 'division2Loadout';
 
 const createFreshInitialLoadout = (): Loadout => {
   const freshLoadout: any = {};
@@ -56,13 +58,37 @@ const createFreshInitialLoadout = (): Loadout => {
 };
 
 const App: React.FC = () => {
-  const [loadout, setLoadout] = useState<Loadout>(createFreshInitialLoadout());
+  const [loadout, setLoadout] = useState<Loadout>(() => {
+    try {
+      const savedLoadoutString = localStorage.getItem(LOCALSTORAGE_KEY);
+      if (savedLoadoutString) {
+        const savedLoadout = JSON.parse(savedLoadoutString);
+        // Basic validation: check if it's an object and has at least one expected gear slot key
+        if (typeof savedLoadout === 'object' && savedLoadout !== null && savedLoadout[GearSlotId.Mask]) {
+          return savedLoadout as Loadout;
+        }
+      }
+    } catch (error) {
+      console.error("Error reading loadout from localStorage:", error);
+      // Fallback to fresh loadout if error or invalid data
+    }
+    return createFreshInitialLoadout();
+  });
+
   const [modalState, setModalState] = useState<ModalState>({
     isOpen: false,
     title: '',
     items: [],
     onSelect: () => {},
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(loadout));
+    } catch (error) {
+      console.error("Error saving loadout to localStorage:", error);
+    }
+  }, [loadout]);
 
   const calculatedStats = useCalculatedStats(loadout);
   const screenshotAreaRef = useRef<HTMLDivElement>(null);
@@ -188,6 +214,11 @@ const App: React.FC = () => {
   }, [getWeaponDataForCategory]);
 
   const handleClearLoadout = useCallback(() => {
+    try {
+      localStorage.removeItem(LOCALSTORAGE_KEY);
+    } catch (error) {
+      console.error("Error clearing loadout from localStorage:", error);
+    }
     setLoadout(createFreshInitialLoadout());
   }, []);
 
