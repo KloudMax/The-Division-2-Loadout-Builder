@@ -13,14 +13,17 @@ interface SkillCardProps {
 const SkillCard: React.FC<SkillCardProps> = ({ skillNumber, selectedSkillState, onUpdateSkillState, setModalState }) => {
   const skillSlotKey = skillNumber === 1 ? 'skill1' : 'skill2';
   const selectedSkillDefinition: SkillDefinition | undefined = selectedSkillState.skillId ? SKILL_DEFINITIONS_DATA[selectedSkillState.skillId] : undefined;
+  const selectedVariant = selectedSkillDefinition && selectedSkillState.selectedVariantId
+    ? selectedSkillDefinition.variants.find(v => v.id === selectedSkillState.selectedVariantId)
+    : null;
 
   const openSkillSelector = () => {
     const skillItems: SelectorItem[] = ALL_SKILL_DEFINITIONS_LIST.map(skillDef => ({
       id: skillDef.id,
       name: skillDef.name,
       type: 'skill',
-      colorName: 'orange', // Or any color fitting for skills
-      description: `${skillDef.modSlots.length} mod slot(s) available.`
+      colorName: 'orange',
+      description: `${skillDef.variants.length} variants available.`
     }));
 
     setModalState({
@@ -28,18 +31,31 @@ const SkillCard: React.FC<SkillCardProps> = ({ skillNumber, selectedSkillState, 
       title: `Select Skill ${skillNumber}`,
       items: skillItems,
       onSelect: (skillId) => {
-        if (skillId === null) {
-          onUpdateSkillState(skillSlotKey, { skillId: null, modSelections: [] });
-        } else {
-          const skillDef = SKILL_DEFINITIONS_DATA[skillId as SkillNameId];
-          const initialModSelections = skillDef ? skillDef.modSlots.map(slot => ({
-            slotDefinitionId: slot.id,
-            selectedModOptionId: null,
-          })) : [];
-          onUpdateSkillState(skillSlotKey, { skillId: skillId as SkillNameId, modSelections: initialModSelections });
-        }
+        onUpdateSkillState(skillSlotKey, { skillId: skillId as SkillNameId | null });
       },
       allowNone: true,
+    });
+  };
+  
+  const openSkillVariantSelector = () => {
+    if (!selectedSkillDefinition) return;
+
+    const variantItems: SelectorItem[] = selectedSkillDefinition.variants.map(variant => ({
+      id: variant.id,
+      name: variant.name,
+      type: 'skillVariant',
+      colorName: 'orange', // Or another fitting color
+      description: variant.description,
+    }));
+
+    setModalState({
+      isOpen: true,
+      title: `Select Variant for ${selectedSkillDefinition.name}`,
+      items: variantItems,
+      onSelect: (variantId) => {
+        onUpdateSkillState(skillSlotKey, { selectedVariantId: variantId as string | null });
+      },
+      allowNone: true, // Allow user to have no variant selected, though it might be invalid state
     });
   };
 
@@ -54,10 +70,10 @@ const SkillCard: React.FC<SkillCardProps> = ({ skillNumber, selectedSkillState, 
       id: modOpt.id,
       name: `${modOpt.attributeName} (${modOpt.valueString})`,
       type: 'skillModOption',
-      colorName: 'yellow', // Generic color for mod options
+      colorName: 'yellow',
       description: `Select this mod for ${slotDef.name}`,
-      skillId: selectedSkillState.skillId!, // For context if needed
-      slotDefinitionId: slotDef.id, // For context if needed
+      skillId: selectedSkillState.skillId!,
+      slotDefinitionId: slotDef.id,
     }));
 
     setModalState({
@@ -72,7 +88,7 @@ const SkillCard: React.FC<SkillCardProps> = ({ skillNumber, selectedSkillState, 
         );
         onUpdateSkillState(skillSlotKey, { modSelections: newModSelections });
       },
-      allowNone: true, // Allow clearing the mod option
+      allowNone: true,
       context: { skillId: selectedSkillState.skillId, slotDefinitionId: slotDef.id }
     });
   };
@@ -93,6 +109,25 @@ const SkillCard: React.FC<SkillCardProps> = ({ skillNumber, selectedSkillState, 
             </span>
           </button>
         </div>
+        
+        {selectedSkillDefinition && (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Skill Variant</label>
+            <button
+              onClick={openSkillVariantSelector}
+              className="w-full p-2 border-2 border-gray-600 bg-gray-700 hover:bg-gray-600 rounded text-left transition-colors"
+            >
+              <div className="flex-grow">
+                <span className={selectedVariant ? 'text-orange-200 font-medium' : 'text-gray-500'}>
+                  {selectedVariant ? selectedVariant.name : 'Select Variant'}
+                </span>
+                {selectedVariant && (
+                  <p className="text-xs text-gray-400 mt-1">{selectedVariant.description}</p>
+                )}
+              </div>
+            </button>
+          </div>
+        )}
 
         {selectedSkillDefinition && selectedSkillDefinition.modSlots.map((slotDef) => {
           const currentModSelection = selectedSkillState.modSelections.find(

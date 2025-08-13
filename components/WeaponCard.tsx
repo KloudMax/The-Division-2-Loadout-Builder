@@ -5,7 +5,7 @@ import {
     ALL_ASSAULT_RIFLE_WEAPON_DATA_LIST,
     ALL_LMG_WEAPON_DATA_LIST,
     ALL_MARKSMAN_RIFLE_WEAPON_DATA_LIST,
-    ALL_PISTOL_WEAPON_DATA_LIST, // Changed from ALL_SIDEARM_WEAPON_DATA_LIST
+    ALL_PISTOL_WEAPON_DATA_LIST,
     ALL_WEAPON_ATTACHMENT_OPTIONS_DATA,
     WEAPON_ATTACHMENT_SLOT_DEFINITIONS_BY_CATEGORY,
     ALL_RIFLE_WEAPON_DATA_LIST,
@@ -21,9 +21,10 @@ interface WeaponCardProps {
   selectedWeaponState: SelectedWeaponState;
   onUpdateWeaponState: (weaponSlotId: WeaponSlotId, updates: Partial<SelectedWeaponState>) => void;
   setModalState: React.Dispatch<React.SetStateAction<ModalState>>;
+  canEquipExotic: boolean;
 }
 
-export const WeaponCard: React.FC<WeaponCardProps> = ({ weaponSlotConfig, selectedWeaponState, onUpdateWeaponState, setModalState }) => {
+export const WeaponCard: React.FC<WeaponCardProps> = ({ weaponSlotConfig, selectedWeaponState, onUpdateWeaponState, setModalState, canEquipExotic }) => {
   const { id: weaponSlotId, name: slotName, supportedCategories } = weaponSlotConfig;
 
   const getWeaponDataForCategory = (category: WeaponCategory | null): WeaponStats[] => {
@@ -31,7 +32,7 @@ export const WeaponCard: React.FC<WeaponCardProps> = ({ weaponSlotConfig, select
     if (category === WeaponCategory.AssaultRifle) return ALL_ASSAULT_RIFLE_WEAPON_DATA_LIST;
     if (category === WeaponCategory.LightMachineGun) return ALL_LMG_WEAPON_DATA_LIST;
     if (category === WeaponCategory.MarksmanRifle) return ALL_MARKSMAN_RIFLE_WEAPON_DATA_LIST;
-    if (category === WeaponCategory.Pistol) return ALL_PISTOL_WEAPON_DATA_LIST; // Changed from ALL_SIDEARM_WEAPON_DATA_LIST
+    if (category === WeaponCategory.Pistol) return ALL_PISTOL_WEAPON_DATA_LIST;
     if (category === WeaponCategory.Rifle) return ALL_RIFLE_WEAPON_DATA_LIST;
     if (category === WeaponCategory.Shotgun) return ALL_SHOTGUN_WEAPON_DATA_LIST;
     if (category === WeaponCategory.SubmachineGun) return ALL_SUBMACHINE_GUN_WEAPON_DATA_LIST;
@@ -59,23 +60,7 @@ export const WeaponCard: React.FC<WeaponCardProps> = ({ weaponSlotConfig, select
         title: `Select Weapon Category for ${slotName}`,
         items: categoryItems,
         onSelect: (categoryId) => { 
-            if (categoryId === null) {
-                onUpdateWeaponState(weaponSlotId, { 
-                    weaponInstanceId: null, 
-                    weaponCategory: null, 
-                    talentId: null,
-                    attachmentSelections: [] 
-                });
-            } else {
-                const newCategory = categoryId as WeaponCategory;
-                onUpdateWeaponState(weaponSlotId, { 
-                    weaponInstanceId: null, 
-                    weaponCategory: newCategory, 
-                    talentId: null,
-                    attachmentSelections: [] 
-                });
-                openWeaponSelectorModal(newCategory); 
-            }
+            onUpdateWeaponState(weaponSlotId, { weaponCategory: categoryId as WeaponCategory | null });
         },
         allowNone: true,
     });
@@ -86,16 +71,15 @@ export const WeaponCard: React.FC<WeaponCardProps> = ({ weaponSlotConfig, select
     if (weaponsInCategory.length === 0) {
         setModalState(prev => ({ ...prev, isOpen: false })); 
         alert(`${category.replace(/([A-Z])/g, ' $1').trim()} data is not available or empty. Please check constants.ts.`);
-        onUpdateWeaponState(weaponSlotId, { 
-            weaponInstanceId: null,
-            weaponCategory: category, 
-            talentId: null,
-            attachmentSelections: []
-        });
         return;
     }
 
-    const weaponItems: SelectorItem[] = weaponsInCategory.map(w => {
+    const filteredWeapons = weaponsInCategory.filter(w => {
+        const isExotic = EXOTIC_WEAPON_NAMES.includes(w.name);
+        return !isExotic || canEquipExotic;
+    });
+
+    const weaponItems: SelectorItem[] = filteredWeapons.map(w => {
       const isExoticItem = EXOTIC_WEAPON_NAMES.includes(w.name);
       const isNamedVariant = !isExoticItem && w.name !== w.family; 
       let colorName: SelectorItem['colorName'];
@@ -121,51 +105,11 @@ export const WeaponCard: React.FC<WeaponCardProps> = ({ weaponSlotConfig, select
       title: `Select ${category.replace(/([A-Z])/g, ' $1').trim()} for ${slotName}`,
       items: weaponItems.sort((a,b) => a.name.localeCompare(b.name)),
       onSelect: (weaponInstanceId) => {
-        if (weaponInstanceId === null) {
-            onUpdateWeaponState(weaponSlotId, { 
-                weaponInstanceId: null, 
-                weaponCategory: category, // Preserve current category
-                talentId: null, 
-                attachmentSelections: [] 
-            });
-        } else {
-            const weaponDef = weaponsInCategory.find(w => w.name === weaponInstanceId);
-            const isExotic = weaponDef ? EXOTIC_WEAPON_NAMES.includes(weaponDef.name) : false;
-            let newAttachmentSelections: SelectedWeaponAttachment[] = [];
-            let newTalentId: WeaponTalentId | null = null;
-            
-            if (!isExotic && weaponDef) { 
-                const attachmentSlotsDefinitions = WEAPON_ATTACHMENT_SLOT_DEFINITIONS_BY_CATEGORY[weaponDef.category] || [];
-                newAttachmentSelections = attachmentSlotsDefinitions.map(slotDef => ({
-                  slotDefinitionId: slotDef.id,
-                  selectedAttachmentOptionId: null,
-                }));
-            }
-            
-            onUpdateWeaponState(weaponSlotId, { 
-                weaponInstanceId: weaponInstanceId as string, 
-                weaponCategory: category, 
-                talentId: newTalentId,
-                attachmentSelections: newAttachmentSelections 
-            });
-        }
+        onUpdateWeaponState(weaponSlotId, { weaponInstanceId: weaponInstanceId as string | null });
       },
       allowNone: true,
       context: { weaponSlotId, weaponCategoryContext: category }
     });
-  };
-  
-  const handleMainButtonClick = () => {
-    if (selectedWeaponState.weaponCategory) {
-      openWeaponSelectorModal(selectedWeaponState.weaponCategory);
-    } else {
-      openWeaponCategorySelectorModal();
-    }
-  };
-
-  const handleChangeCategoryButtonClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
-    openWeaponCategorySelectorModal();
   };
 
   const openAttachmentOptionSelector = (attachmentSlotDef: WeaponAttachmentSlotDefinition) => {
@@ -230,33 +174,32 @@ export const WeaponCard: React.FC<WeaponCardProps> = ({ weaponSlotConfig, select
     });
   };
 
-
-  let weaponButtonText = `Select ${slotName}`;
-  let weaponButtonColorClass = 'text-gray-500 font-semibold';
-  let weaponDescription: string | undefined = `Supported: ${supportedCategories.map(c => c.replace(/([A-Z])/g, ' $1').trim()).join(', ')}`;
-
+  // --- Button Text and Color Logic ---
+  const categoryText = selectedWeaponState.weaponCategory
+    ? selectedWeaponState.weaponCategory.replace(/([A-Z])/g, ' $1').trim()
+    : 'Select Weapon Category';
+  const categoryTextColor = selectedWeaponState.weaponCategory ? 'text-teal-400 font-semibold' : 'text-gray-500';
+  const categoryDescription = selectedWeaponState.weaponCategory
+    ? 'Click to change the weapon category.'
+    : `Supported: ${supportedCategories.map(c => c.replace(/([A-Z])/g, ' $1').trim()).join(', ')}`;
+  
+  let weaponText = 'Select Weapon';
+  let weaponTextColor = 'text-gray-500';
+  let weaponDescription = 'Click to choose a weapon from this category.';
 
   if (selectedWeaponDefinition) {
-      const isExotic = EXOTIC_WEAPON_NAMES.includes(selectedWeaponDefinition.name);
-      const isNamedVariant = !isExotic && selectedWeaponDefinition.name !== selectedWeaponDefinition.family;
+    const isExotic = EXOTIC_WEAPON_NAMES.includes(selectedWeaponDefinition.name);
+    const isNamedVariant = !isExotic && selectedWeaponDefinition.name !== selectedWeaponDefinition.family;
 
-
-      if (isExotic) {
-          weaponButtonColorClass = 'text-red-500 font-semibold';
-      } else if (isNamedVariant) {
-          weaponButtonColorClass = 'text-yellow-300 font-semibold';
-      } else { 
-          weaponButtonColorClass = 'text-orange-300 font-semibold';
-      }
-      weaponButtonText = `${selectedWeaponDefinition.family} - ${selectedWeaponDefinition.name}`;
-      weaponDescription = `RPM: ${selectedWeaponDefinition.rpm}, Mag: ${selectedWeaponDefinition.magSize}, Dmg: ${selectedWeaponDefinition.level40Dmg.toLocaleString()}`;
-      if (isCurrentWeaponExotic) {
-        weaponDescription += " (Exotic: Fixed Attachments & Talent)";
-      }
-  } else if (selectedWeaponState.weaponCategory) {
-    weaponButtonText = `Select ${selectedWeaponState.weaponCategory.replace(/([A-Z])/g, ' $1').trim()}`;
-    weaponButtonColorClass = 'text-teal-400 font-semibold'; 
-    weaponDescription = `Click to choose a ${selectedWeaponState.weaponCategory.replace(/([A-Z])/g, ' $1').trim()}. Or change category.`;
+    if (isExotic) weaponTextColor = 'text-red-500 font-semibold';
+    else if (isNamedVariant) weaponTextColor = 'text-yellow-300 font-semibold';
+    else weaponTextColor = 'text-orange-300 font-semibold';
+    
+    weaponText = `${selectedWeaponDefinition.family} - ${selectedWeaponDefinition.name}`;
+    weaponDescription = `RPM: ${selectedWeaponDefinition.rpm}, Mag: ${selectedWeaponDefinition.magSize}, Dmg: ${selectedWeaponDefinition.level40Dmg.toLocaleString()}`;
+    if (isCurrentWeaponExotic) {
+      weaponDescription += " (Exotic: Fixed Attachments & Talent)";
+    }
   }
 
 
@@ -266,29 +209,34 @@ export const WeaponCard: React.FC<WeaponCardProps> = ({ weaponSlotConfig, select
       
       <div className="space-y-3">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            {selectedWeaponDefinition ? `Selected: ${selectedWeaponState.weaponCategory?.replace(/([A-Z])/g, ' $1').trim()}` : `Weapon Category`}
-          </label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Weapon Category</label>
           <button 
-            onClick={handleMainButtonClick}
-            className="w-full p-2 border-2 border-gray-600 bg-gray-700 hover:bg-gray-600 rounded text-left transition-colors mb-1"
-            aria-label={`Select ${selectedWeaponDefinition ? selectedWeaponDefinition.name : slotName}`}
+            onClick={openWeaponCategorySelectorModal}
+            className="w-full p-2 border-2 border-gray-600 bg-gray-700 hover:bg-gray-600 rounded text-left transition-colors"
+            aria-label={`Select weapon category for ${slotName}`}
           >
-            <span className={weaponButtonColorClass}>
-              {weaponButtonText}
+            <span className={categoryTextColor}>
+              {categoryText}
             </span>
-            {weaponDescription && <p className="text-xs text-gray-400 mt-1">{weaponDescription}</p>}
-          </button>
-          <button 
-              onClick={handleChangeCategoryButtonClick}
-              className="w-full text-xs text-blue-400 hover:text-blue-300 p-1 bg-gray-750 hover:bg-gray-650 rounded transition-colors"
-              aria-label={`Change weapon category for ${slotName}`}
-          >
-              {selectedWeaponState.weaponCategory 
-                ? `Change Category (Currently: ${selectedWeaponState.weaponCategory.replace(/([A-Z])/g, ' $1').trim()})` 
-                : "Select Weapon Category"}
+             <p className="text-xs text-gray-400 mt-1">{categoryDescription}</p>
           </button>
         </div>
+
+        {selectedWeaponState.weaponCategory && (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Weapon</label>
+            <button
+              onClick={() => openWeaponSelectorModal(selectedWeaponState.weaponCategory!)}
+              className="w-full p-2 border-2 border-gray-600 bg-gray-700 hover:bg-gray-600 rounded text-left transition-colors"
+              aria-label={`Select weapon for ${slotName}`}
+            >
+              <span className={weaponTextColor}>
+                {weaponText}
+              </span>
+              <p className="text-xs text-gray-400 mt-1">{weaponDescription}</p>
+            </button>
+          </div>
+        )}
 
         {selectedWeaponDefinition && !isCurrentWeaponExotic && (
           <div>

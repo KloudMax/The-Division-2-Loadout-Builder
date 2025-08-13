@@ -1,6 +1,6 @@
 
 import { useMemo } from 'react';
-import { Loadout, CalculatedStats, BrandId, GearSetId, GearSlotId, CalculatedStatsBase, ActiveSetInfo, SelectedGearPiece, NamedItemInfo, GearModId, SelectedSkillState, SkillModOptionId, SkillNameId, SelectedWeaponState, WeaponSlotId, WeaponStats, WeaponCategory, ActiveWeaponTalentInfo } from '../types';
+import { Loadout, CalculatedStats, BrandId, GearSetId, GearSlotId, CalculatedStatsBase, ActiveSetInfo, SelectedGearPiece, NamedItemInfo, GearModId, SelectedSkillState, SkillModOptionId, SkillNameId, SelectedWeaponState, WeaponSlotId, WeaponStats, WeaponCategory, ActiveWeaponTalentInfo, SpecializationId } from '../types';
 import { 
     INITIAL_CALCULATED_STATS, 
     BRANDS_DATA, 
@@ -27,7 +27,8 @@ import {
     ALL_SHOTGUN_WEAPON_DATA_LIST, 
     ALL_PISTOL_WEAPON_DATA_LIST, 
     ALL_SUBMACHINE_GUN_WEAPON_DATA_LIST, 
-    WEAPON_TALENTS_DATA 
+    WEAPON_TALENTS_DATA,
+    SPECIALIZATIONS_DATA
 } from '../constants';
 
 
@@ -92,8 +93,8 @@ export const useCalculatedStats = (loadout: Loadout): CalculatedStats => {
                     if (namedItemInfo.id === 'contractorsGloves') stats.damageToArmor += 8;
                     if (namedItemInfo.id === 'foxsPrayer') stats.damageToTargetsOutOfCover += 8;
                     if (namedItemInfo.id === 'theHollowMan') stats.damageToHealth += 10;
-                    if (namedItemInfo.id === 'picarosHolster') stats.weaponDamageBonus += 15; // This is a special core-like attribute
-                    if (namedItemInfo.id === 'emperorsGuard') stats.armorRegen += (INITIAL_CALCULATED_STATS.armor * 0.01); // 1% of base armor
+                    if (namedItemInfo.id === 'picarosHolster') stats.weaponDamageBonus += 15; 
+                    if (namedItemInfo.id === 'emperorsGuard') stats.armorRegen += (INITIAL_CALCULATED_STATS.armor * 0.01); 
                 }
             }
         }
@@ -134,7 +135,7 @@ export const useCalculatedStats = (loadout: Loadout): CalculatedStats => {
                             modOptionData.effects.forEach(effect => {
                                 const statKey = effect.stat as keyof CalculatedStatsBase;
                                 if (typeof (stats as any)[statKey] === 'number') {
-                                    (stats as any)[statKey] += effect.value; // Assuming direct addition for simplicity
+                                    (stats as any)[statKey] += effect.value;
                                 }
                             });
                         }
@@ -144,7 +145,7 @@ export const useCalculatedStats = (loadout: Loadout): CalculatedStats => {
         }
     });
 
-    // Weapons processing (including weapon talents)
+    // Weapons processing
     WEAPON_SLOTS_CONFIG.forEach(wsConfig => {
         const weaponState = loadout[wsConfig.id] as SelectedWeaponState;
         if (weaponState.weaponInstanceId && weaponState.weaponCategory) {
@@ -175,138 +176,197 @@ export const useCalculatedStats = (loadout: Loadout): CalculatedStats => {
             }
 
             if (weaponDef) {
+                // Apply native weapon bonus (e.g., ARs +X% Dmg to Health)
                 switch (weaponDef.weaponBonusType) {
                     case 'Health': stats.damageToHealth += weaponDef.weaponBonusValuePercent; break;
                     case 'Armor': stats.damageToArmor += weaponDef.weaponBonusValuePercent; break;
                     case 'OutOfCoverDamage': stats.damageToTargetsOutOfCover += weaponDef.weaponBonusValuePercent; break;
                     case 'HeadshotDamage': stats.headshotDamage += weaponDef.weaponBonusValuePercent; break;
                     case 'CriticalHitDamage': stats.criticalHitDamage += weaponDef.weaponBonusValuePercent; break;
-                    case 'DamageToArmor': stats.damageToArmor += weaponDef.weaponBonusValuePercent; break;
                     case 'CriticalHitChance': stats.criticalHitChance += weaponDef.weaponBonusValuePercent; break;
+                    // Note: Some weapon bonus types might directly refer to a weapon category damage,
+                    // e.g., "AssaultRifleDamage". These are implicitly handled by selecting the weapon.
+                    // The global `weaponDamageBonus` from cores/minors/brands enhances all.
                 }
-            }
-            
-            // Add selected weapon talent to stats
-            if (weaponState.talentId && WEAPON_TALENTS_DATA[weaponState.talentId] && weaponDef && !isExotic) {
-                const talentData = WEAPON_TALENTS_DATA[weaponState.talentId];
-                stats.activeWeaponTalents.push({
-                    weaponSlot: wsConfig.id,
-                    talentName: talentData.name,
-                    description: talentData.description,
-                });
+
+                // Add active weapon talent to stats display list (if not exotic with intrinsic talent)
+                if (!isExotic && weaponState.talentId) {
+                    const talentData = WEAPON_TALENTS_DATA[weaponState.talentId];
+                    if (talentData) {
+                        stats.activeWeaponTalents.push({
+                            weaponSlot: wsConfig.id,
+                            talentName: talentData.name,
+                            description: talentData.description,
+                        });
+                    }
+                }
+                // Exotic talents are typically listed with the weapon description or are too complex for flat stat representation here.
             }
         }
     });
 
-
-    // Apply Brand Set Bonuses
+    // Brand Set Bonuses
     for (const brandId in brandCounts) {
       const count = brandCounts[brandId];
-      const brandData = BRANDS_DATA[brandId];
+      const brandData = BRANDS_DATA[brandId as BrandId];
       if (brandData) {
         brandData.bonuses.forEach(bonus => {
           if (count >= bonus.pieces) {
             stats.brandSetBonuses.push({ name: `${brandData.name} (${bonus.pieces}pc)`, description: bonus.description });
             const parsed = parseStatValue(bonus.description);
             if (parsed) {
-              if (bonus.description.includes('Health') && !bonus.description.includes('Skill Health')) stats.health += parsed.isPercentage ? (INITIAL_CALCULATED_STATS.health * parsed.value / 100) : parsed.value;
-              else if (bonus.description.includes('Armor Regen')) stats.armorRegen += parsed.isPercentage ? (INITIAL_CALCULATED_STATS.armor * parsed.value / 100) : parsed.value;
-              else if (bonus.description.includes('Total Armor')) stats.totalArmorBonus += parsed.value; 
-              else if (bonus.description.includes('Weapon Damage') && !bonus.description.includes('Signature')) stats.weaponDamageBonus += parsed.value;
-              else if (bonus.description.includes('Critical Hit Chance')) stats.criticalHitChance += parsed.value;
-              else if (bonus.description.includes('Critical Hit Damage')) stats.criticalHitDamage += parsed.value;
-              else if (bonus.description.includes('Headshot Damage')) stats.headshotDamage += parsed.value;
-              else if (bonus.description.includes('Skill Haste') || bonus.description.includes('Cooldown Reduction')) stats.skillHaste += parsed.value;
-              else if (bonus.description.includes('Skill Damage')) stats.skillDamage += parsed.value;
-              else if (bonus.description.includes('Skill Repair')) stats.skillRepair += parsed.value;
-              else if (bonus.description.includes('Status Effects')) stats.statusEffects += parsed.value;
-              else if (bonus.description.includes('Hazard Protection')) stats.hazardProtection += parsed.value;
-              else if (bonus.description.includes('Marksman Rifle Damage')) stats.marksmanRifleDamage += parsed.value;
-              else if (bonus.description.includes('SMG Damage')) stats.smgDamage += parsed.value;
-              else if (bonus.description.includes('Shotgun Damage')) stats.shotgunDamage += parsed.value;
-              else if (bonus.description.includes('Rifle Damage')) stats.rifleDamage += parsed.value;
-              else if (bonus.description.includes('LMG Damage')) stats.lmgDamage += parsed.value;
-              else if (bonus.description.includes('Pistol Damage')) stats.pistolDamage += parsed.value;
-              else if (bonus.description.includes('Skill Tier')) stats.skillTiers += parsed.value;
-              else if (bonus.description.includes('Reload Speed')) stats.reloadSpeed += parsed.value;
-              else if (bonus.description.includes('Ammo Capacity')) stats.ammoCapacity += parsed.value;
-              else if (bonus.description.includes('Magazine Size')) stats.magazineSize += parsed.value;
-              else if (bonus.description.includes('Weapon Handling') || bonus.description.includes('Stability') || bonus.description.includes('Accuracy')) stats.weaponHandling += parsed.value;
-              else if (bonus.description.includes('Armor on Kill')) stats.armorOnKill += parsed.value;
-              else if (bonus.description.includes('Signature Weapon Damage')) stats.signatureWeaponDamage += parsed.value;
-              else if (bonus.description.includes('Damage to Armor')) stats.damageToArmor += parsed.value;
-              else if (bonus.description.includes('Damage to Health')) stats.damageToHealth += parsed.value;
-              else if (bonus.description.includes('Incoming Repairs') || bonus.description.includes('Extra Incoming Healing')) stats.incomingRepairs += parsed.value;
-              else if (bonus.description.includes('Skill Duration')) stats.skillDuration += parsed.value;
+                if (bonus.description.toLowerCase().includes('health') && !bonus.description.toLowerCase().includes('on kill') && !bonus.description.toLowerCase().includes('skill health')) {
+                    if (parsed.isPercentage) stats.health += (INITIAL_CALCULATED_STATS.health * (parsed.value / 100)); else stats.health += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('total armor') && !bonus.description.toLowerCase().includes('on kill')) {
+                     if (parsed.isPercentage) stats.totalArmorBonus += parsed.value; else stats.armor += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('armor regen') && parsed.isPercentage) {
+                    stats.armorRegen += (INITIAL_CALCULATED_STATS.armor * (parsed.value / 100)); // % of base armor
+                } else if (bonus.description.toLowerCase().includes('armor on kill')) {
+                    if (parsed.isPercentage) { /* Requires complex base armor calculation for this piece type */ } else stats.armorOnKill += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('crit chance')) {
+                    stats.criticalHitChance += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('crit damage')) {
+                    stats.criticalHitDamage += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('headshot damage')) {
+                    stats.headshotDamage += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('weapon damage') && !bonus.description.toLowerCase().includes('rifle') && !bonus.description.toLowerCase().includes('smg')) { // Generic weapon damage
+                    stats.weaponDamageBonus += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('skill damage')) {
+                    stats.skillDamage += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('skill haste') || bonus.description.toLowerCase().includes('cooldown reduction')) {
+                    stats.skillHaste += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('status effects')) {
+                    stats.statusEffects += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('hazard protection')) {
+                    stats.hazardProtection += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('skill repair')) {
+                    stats.skillRepair += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('skill duration')) {
+                    stats.skillDuration += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('assault rifle damage')) {
+                     stats.weaponDamageBonus += parsed.value; // Simplified, or could be specific AR stat
+                } else if (bonus.description.toLowerCase().includes('lmg damage')) {
+                    stats.lmgDamage += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('marksman rifle damage')) {
+                    stats.marksmanRifleDamage += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('rifle damage')) {
+                    stats.rifleDamage += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('shotgun damage')) {
+                    stats.shotgunDamage += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('smg damage')) {
+                    stats.smgDamage += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('pistol damage')) {
+                    stats.pistolDamage += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('explosive damage')) {
+                    stats.explosiveDamage += parsed.value;
+                } else if (bonus.description.toLowerCase().includes('magazine size')) {
+                    stats.magazineSize += parsed.value; // Assuming this is a percentage
+                } else if (bonus.description.toLowerCase().includes('reload speed')) {
+                    stats.reloadSpeed += parsed.value;
+                }
+                // Add more specific parsings as needed
             }
           }
         });
       }
     }
-    
-    stats.armor += INITIAL_CALCULATED_STATS.armor * (stats.totalArmorBonus / 100);
+    // Apply totalArmorBonus accumulated from percentages to the base armor
+    stats.armor += (INITIAL_CALCULATED_STATS.armor * (stats.totalArmorBonus / 100));
+    stats.totalArmorBonus = 0; // Reset as it's now incorporated into stats.armor
 
-
+    // Gear Set Bonuses
     for (const gearSetId in gearSetCounts) {
-      const { count, pieces } = gearSetCounts[gearSetId];
-      const setData = GEAR_SETS_DATA[gearSetId];
-      if (setData) {
-        const activeSet: ActiveSetInfo = { id: gearSetId as GearSetId, name: setData.name, activeBonuses: [] };
-        setData.bonuses.forEach(bonus => {
+      const setData = gearSetCounts[gearSetId as GearSetId];
+      const count = setData.count;
+      const gearSetData = GEAR_SETS_DATA[gearSetId as GearSetId];
+      if (gearSetData) {
+        const activeSetInfo: ActiveSetInfo = {
+          id: gearSetId as GearSetId,
+          name: gearSetData.name,
+          activeBonuses: [],
+        };
+        gearSetData.bonuses.forEach(bonus => {
           if (count >= bonus.pieces) {
-            activeSet.activeBonuses.push({ pieces: bonus.pieces, description: bonus.description });
-            const parsed = parseStatValue(bonus.description);
-            if (parsed) {
-              if (bonus.description.includes('Skill Haste')) stats.skillHaste += parsed.value;
-              else if (bonus.description.includes('Skill Damage')) stats.skillDamage += parsed.value;
-              else if (bonus.description.includes('Skill Repair')) stats.skillRepair += parsed.value;
-              else if (bonus.description.includes('Status Effects')) stats.statusEffects += parsed.value;
-              else if (bonus.description.includes('Reload Speed')) stats.reloadSpeed += parsed.value;
-              else if (bonus.description.includes('Ammo Capacity')) stats.ammoCapacity += parsed.value;
-              else if (bonus.description.includes('Magazine Size')) stats.magazineSize += parsed.value;
-              else if (bonus.description.includes('Marksman Rifle Damage')) stats.marksmanRifleDamage += parsed.value;
-              else if (bonus.description.includes('Headshot Damage')) stats.headshotDamage += parsed.value;
-              else if (bonus.description.includes('Critical Hit Chance')) stats.criticalHitChance += parsed.value;
-              else if (bonus.description.includes('Critical Hit Damage')) stats.criticalHitDamage += parsed.value;
-              else if (bonus.description.includes('Signature Weapon Damage')) stats.signatureWeaponDamage += parsed.value;
-              else if (bonus.description.includes('Weapon Damage') && !bonus.description.includes('Signature')) stats.weaponDamageBonus += parsed.value;
-              else if (bonus.description.includes('Total Armor')) stats.armor += INITIAL_CALCULATED_STATS.armor * (parsed.value / 100);
-              else if (bonus.description.includes('armor/sec regeneration')) stats.armorRegen += INITIAL_CALCULATED_STATS.armor * (parsed.value / 100) ; 
-              else if (bonus.description.includes('Shield health')) stats.shieldHealth += parsed.value; 
-              else if (bonus.description.includes('Skill Duration')) stats.skillDuration += parsed.value;
-              else if (bonus.description.includes('Cooldown Reduction')) stats.skillHaste += parsed.value; 
-              else if (bonus.description.includes('Weapon Handling')) stats.weaponHandling += parsed.value;
-              else if (bonus.description.includes('Rate of Fire')) stats.rateOfFire += parsed.value;
-              else if (bonus.description.includes('Armor on Kill')) stats.armorOnKill += parsed.value; 
-              else if (bonus.description.includes('Disrupt Resistance')) stats.disruptResistance += parsed.value;
-              else if (bonus.description.includes('Pulse Resistance')) stats.pulseResistance += parsed.value;
-              else if (bonus.description.includes('Hazard Protection')) stats.hazardProtection += parsed.value;
-              else if (bonus.description.includes('SMG Damage')) stats.smgDamage += parsed.value;
-              else if (bonus.description.includes('Shotgun Damage')) stats.shotgunDamage += parsed.value;
-              else if (bonus.description.includes('Health on Kill')) stats.healthOnKill += parsed.value; 
+            activeSetInfo.activeBonuses.push({ pieces: bonus.pieces, description: bonus.description });
+            if (bonus.pieces < 4) { 
+                const parsed = parseStatValue(bonus.description);
+                if (parsed) {
+                    if (bonus.description.toLowerCase().includes('skill haste')) stats.skillHaste += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('skill damage')) stats.skillDamage += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('status effects')) stats.statusEffects += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('reload speed')) stats.reloadSpeed += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('ammo capacity')) stats.ammoCapacity += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('magazine size')) stats.magazineSize += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('marksman rifle damage')) stats.marksmanRifleDamage += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('headshot damage')) stats.headshotDamage += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('crit chance')) stats.criticalHitChance += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('crit damage')) stats.criticalHitDamage += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('signature weapon damage')) stats.signatureWeaponDamage += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('weapon damage') && bonus.pieces === 3 && gearSetId === 'tipOfTheSpear') stats.weaponDamageBonus += parsed.value; // Tip of the Spear 3pc
+                    else if (bonus.description.toLowerCase().includes('total armor')) { if(parsed.isPercentage) stats.totalArmorBonus += parsed.value; else stats.armor += parsed.value; }
+                    else if (bonus.description.toLowerCase().includes('armor regen') && parsed.isPercentage) stats.armorRegen += (INITIAL_CALCULATED_STATS.armor * (parsed.value/100));
+                    else if (bonus.description.toLowerCase().includes('skill repair')) stats.skillRepair += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('skill duration')) stats.skillDuration += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('weapon handling')) stats.weaponHandling += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('rate of fire')) stats.rateOfFire += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('armor on kill')) { if(parsed.isPercentage) { /* complex */} else stats.armorOnKill += parsed.value; }
+                    else if (bonus.description.toLowerCase().includes('disrupt resistance')) stats.disruptResistance += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('pulse resistance')) stats.pulseResistance += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('hazard protection')) stats.hazardProtection += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('smg damage')) stats.smgDamage += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('shotgun damage')) stats.shotgunDamage += parsed.value;
+                    else if (bonus.description.toLowerCase().includes('health on kill')) stats.healthOnKill += parsed.value; // Hunter's Fury
+                }
             }
-
-            if (bonus.pieces === 4 && setData.bonuses[2].talentName) {
-                 activeSet.fourPieceTalent = { name: setData.bonuses[2].talentName, description: setData.bonuses[2].description};
+            if (bonus.pieces === 4 && bonus.talentName) {
+              activeSetInfo.fourPieceTalent = { name: bonus.talentName, description: bonus.description };
             }
           }
         });
-        const hasChest = pieces.some(p => p.slotId === GearSlotId.Chest);
-        const hasBackpack = pieces.some(p => p.slotId === GearSlotId.Backpack);
 
-        if (count >= 4) { 
-            if (hasChest && setData.chestTalent) activeSet.activeChestTalent = setData.chestTalent;
-            if (hasBackpack && setData.backpackTalent) activeSet.activeBackpackTalent = setData.backpackTalent;
+        if (count >= 4) {
+            const hasChest = setData.pieces.some(p => p.slotId === GearSlotId.Chest && p.itemId === gearSetId);
+            const hasBackpack = setData.pieces.some(p => p.slotId === GearSlotId.Backpack && p.itemId === gearSetId);
+
+            if (hasChest && gearSetData.chestTalent) {
+                activeSetInfo.activeChestTalent = gearSetData.chestTalent;
+            }
+            if (hasBackpack && gearSetData.backpackTalent) {
+                activeSetInfo.activeBackpackTalent = gearSetData.backpackTalent;
+            }
         }
-
-        if (activeSet.activeBonuses.length > 0) {
-          stats.gearSetInfo.push(activeSet);
+        if (activeSetInfo.activeBonuses.length > 0) {
+            stats.gearSetInfo.push(activeSetInfo);
         }
       }
     }
-    
-    stats.criticalHitChance = Math.min(stats.criticalHitChance, 60);
+     // Re-apply totalArmorBonus from gear sets
+    stats.armor += (INITIAL_CALCULATED_STATS.armor * (stats.totalArmorBonus / 100));
 
+
+    // Specialization Bonuses
+    if (loadout.selectedSpecializationId) {
+        const specData = SPECIALIZATIONS_DATA[loadout.selectedSpecializationId];
+        if (specData) {
+            specData.bonuses.forEach(bonus => {
+                stats.specializationBonuses.push({ name: specData.name, description: bonus.description });
+                if (bonus.statEffect) {
+                    const effect = bonus.statEffect;
+                    const statKey = effect.stat as keyof CalculatedStatsBase;
+                    if (typeof (stats as any)[statKey] === 'number') {
+                        if (effect.stat === 'armorOnKill' && effect.isPercentage) {
+                            (stats as any)[statKey] += (INITIAL_CALCULATED_STATS.armor * (effect.value / 100));
+                        } else if (effect.stat === 'health' && effect.isPercentage) { 
+                            (stats as any)[statKey] += (INITIAL_CALCULATED_STATS.health * (effect.value / 100));
+                        } else {
+                           (stats as any)[statKey] += effect.value;
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
     return stats;
   }, [loadout]);
 };

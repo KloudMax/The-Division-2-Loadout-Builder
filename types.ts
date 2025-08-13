@@ -21,6 +21,7 @@ export type MinorAttributeId = string; // e.g., 'critChance', 'critDamage'
 export type TalentId = string; // e.g., 'glassCannon', 'vigilance' (for generic gear talents)
 export type WeaponTalentId = string; // e.g., 'boomerang', 'breadbasket'
 export type GearModId = string; // e.g., 'offensiveCritChanceMod'
+export type SpecializationId = string; // e.g., 'sharpshooter', 'demolitionist'
 
 export enum GearModType {
   Offensive = 'offensive',
@@ -29,15 +30,23 @@ export enum GearModType {
 }
 
 export enum SkillNameId {
-  ChemLauncher = 'chemLauncher',
-  Decoy = 'decoy',
-  Drone = 'drone',
-  Firefly = 'firefly',
-  Hive = 'hive',
   Pulse = 'pulse',
+  Turret = 'turret',
+  Hive = 'hive',
+  ChemLauncher = 'chemLauncher',
+  Firefly = 'firefly',
   SeekerMine = 'seekerMine',
+  Drone = 'drone',
   Shield = 'shield',
-  SmartCover = 'smartCover', // Added new skill
+  StickyBomb = 'stickyBomb',
+  Decoy = 'decoy',
+  Trap = 'trap',
+}
+
+export interface SkillVariant {
+  id: string; // e.g., 'pulse_scanner'
+  name: string; // 'Scanner'
+  description: string;
 }
 
 export interface SkillModSlotDefinition {
@@ -48,6 +57,7 @@ export interface SkillModSlotDefinition {
 export interface SkillDefinition {
   id: SkillNameId;
   name: string; // e.g., "Chem Launcher"
+  variants: SkillVariant[];
   modSlots: SkillModSlotDefinition[]; // The actual slots on this skill
   description?: string; // Added for skills like Smart Cover with variant details
 }
@@ -76,6 +86,7 @@ export interface SelectedSkillMod {
 
 export interface SelectedSkillState {
   skillId: SkillNameId | null;
+  selectedVariantId: string | null;
   modSelections: SelectedSkillMod[];
 }
 
@@ -249,9 +260,24 @@ export interface WeaponSlotConfig {
   supportedCategories: WeaponCategory[]; // e.g. Primary can be AR, SMG, LMG, etc. Sidearm usually Pistol
 }
 
+export interface SpecializationBonus {
+  description: string; // e.g., "+15% Headshot Damage"
+  // Optional: more structured effect if needed for calculation beyond simple string parsing
+  statEffect?: { stat: keyof CalculatedStatsBase; value: number; isPercentage?: boolean };
+}
+
+export interface SpecializationData {
+  id: SpecializationId;
+  name: string;
+  bonuses: SpecializationBonus[];
+  description?: string; // Overall description of the specialization
+  signatureWeapon: string;
+  skillVariants: string[];
+}
+
 
 export interface Loadout {
-  [key: string]: SelectedGearPiece | SelectedSkillState | SelectedWeaponState; // Generalize
+  [key: string]: SelectedGearPiece | SelectedSkillState | SelectedWeaponState | SpecializationId | null; // Generalize
   mask: SelectedGearPiece;
   chest: SelectedGearPiece;
   holster: SelectedGearPiece;
@@ -263,87 +289,85 @@ export interface Loadout {
   primaryWeapon: SelectedWeaponState;
   secondaryWeapon: SelectedWeaponState;
   sidearm: SelectedWeaponState;
+  selectedSpecializationId: SpecializationId | null;
 }
 
 
 // Base stats that can be directly modified
 export interface CalculatedStatsBase {
+  // Core Combat Stats
   weaponDamageBonus: number;
   criticalHitChance: number;
   criticalHitDamage: number;
   headshotDamage: number;
+  damageToArmor: number;
+  damageToHealth: number;
+  damageToTargetsOutOfCover: number;
+
+  // Defensive Stats
   armor: number;
   health: number;
+  armorRegen: number;
+  armorOnKill: number;
+  healthOnKill: number;
+  protectionFromElites: number;
+  hazardProtection: number;
+  incomingRepairs: number;
+  
+  // Resistance Stats
+  explosiveResistance: number;
+  disruptResistance: number;
+  pulseResistance: number;
+  bleedResistance: number;
+  blindDeafResistance: number;
+  burnResistance: number;
+  disorientResistance: number;
+  ensnareResistance: number;
+  shockResistance: number;
+  
+  // Global Skill Stats
   skillTiers: number;
   skillDamage: number;
   skillHaste: number;
   skillRepair: number;
   skillDuration: number;
   statusEffects: number;
-  armorRegen: number;
-  hazardProtection: number;
+  explosiveDamage: number;
+
+  // Utility & Weapon Stats
   reloadSpeed: number;
   ammoCapacity: number;
   magazineSize: number;
-  marksmanRifleDamage: number;
+  weaponHandling: number;
+  rateOfFire: number;
+  
+  // Specialization
   signatureWeaponDamage: number;
-  totalArmorBonus: number;
-  armorOnKill: number;
-  healthOnKill: number;
+
+  // Weapon-specific Damage
+  marksmanRifleDamage: number;
   smgDamage: number;
   shotgunDamage: number;
   rifleDamage: number; 
   lmgDamage: number; 
   pistolDamage: number; 
-  weaponHandling: number;
-  rateOfFire: number;
-  disruptResistance: number;
-  pulseResistance: number;
-  damageToArmor: number;
-  damageToHealth: number;
-  damageToTargetsOutOfCover: number;
-  // Stats from Gear Mods
-  protectionFromElites: number;
-  bleedResistance: number;
-  blindDeafResistance: number;
-  burnResistance: number;
-  disorientResistance: number;
-  ensnareResistance: number;
-  incomingRepairs: number;
-  shockResistance: number;
+  
+  // --- Skill Platform Specific Stats ---
+  // Pulse
+  pulseConeSize: number;
+  pulseRadius: number;
+  pulseEffectDuration: number;
+  pulseHealth: number; // For remote pulse device
+  pulseSkillHaste: number;
+  pulseCharges: number; // Jammer Pulse
 
-  // Skill Mod Stats - Chem Launcher
-  chemLauncherBurnStrength: number;
-  chemLauncherDamage: number;
-  chemLauncherEnsnareHealth: number;
-  chemLauncherEnsnareDuration: number;
-  chemLauncherHeal: number;
-  chemLauncherAmmo: number;
-  chemLauncherDuration: number;
-  chemLauncherRadius: number;
-  chemLauncherSkillHaste: number; // Specific if different from global
+  // Turret
+  turretDamage: number;
+  turretDuration: number;
+  turretHealth: number;
+  turretAmmo: number; // For Sniper/Artillery
 
-  // Skill Mod Stats - Decoy
-  decoyHealth: number;
-  decoyDuration: number;
-  decoyDeflectDuration: number;
-
-  // Skill Mod Stats - Drone
-  droneArmorRepair: number;
-  droneDamage: number;
-  droneDamageReduction: number;
-  droneExtraBombs: number;
-  droneHealth: number;
-  droneScanRange: number;
-
-  // Skill Mod Stats - Firefly
-  fireflyBlindEffectDuration: number;
-  fireflyDamage: number;
-  fireflySpeed: number;
-  fireflySkillHaste: number; // Specific
-  fireflyMaxTargets: number;
-
-  // Skill Mod Stats - Hive
+  // Hive
   hiveDamage: number;
   hiveHealing: number;
   hiveRevivedArmor: number;
@@ -355,28 +379,73 @@ export interface CalculatedStatsBase {
   hiveDuration: number;
   hiveHealth: number;
 
-  // Skill Mod Stats - Pulse
-  pulseConeSize: number;
-  pulseRadius: number;
-  pulseEffectDuration: number;
-  pulseHealth: number; // Assuming for a physical pulse device if applicable
-  pulseSkillHaste: number; // Specific
+  // Chem Launcher
+  chemLauncherBurnStrength: number;
+  chemLauncherDamage: number;
+  chemLauncherEnsnareHealth: number;
+  chemLauncherEnsnareDuration: number;
+  chemLauncherHeal: number;
+  chemLauncherAmmo: number;
+  chemLauncherDuration: number; // Foam duration etc.
+  chemLauncherRadius: number;
+  chemLauncherSkillHaste: number;
 
-  // Skill Mod Stats - Seeker Mine
+  // Firefly
+  fireflyBlindEffectDuration: number;
+  fireflyDamage: number;
+  fireflySpeed: number;
+  fireflySkillHaste: number;
+  fireflyMaxTargets: number;
+  fireflyHealth: number;
+
+  // Seeker Mine
   seekerMineDamage: number;
   seekerMineRadius: number;
-  seekerMineSkillHaste: number; // Specific
+  seekerMineSkillHaste: number;
   seekerMineHealing: number;
-  seekerMineClusterMines: number; // Number of mines
+  seekerMineClusterMines: number;
   seekerMineHealth: number;
+  seekerMineDuration: number; // e.g. Mender duration
 
-  // Skill Mod Stats - Shield
-  shieldDamageBonusPerEnemy: number; // Might be active or holstered
+  // Drone
+  droneArmorRepair: number;
+  droneDamage: number;
+  droneDuration: number;
+  droneHealth: number;
+  droneSkillHaste: number;
+  droneDamageReduction: number;
+  droneExtraBombs: number;
+  droneScanRange: number;
+
+  // Shield
+  shieldDamageBonusPerEnemy: number;
   shieldDeflectorDamage: number;
   shieldHolsteredRegeneration: number;
   shieldHealth: number;
   shieldActiveRegeneration: number;
+
+  // Sticky Bomb
+  stickyBombDamage: number;
+  stickyBombEffectDuration: number;
+  stickyBombRadius: number;
+  stickyBombAmmo: number;
+
+  // Decoy
+  decoyHealth: number;
+  decoyDuration: number;
+  decoyDeflectDuration: number; // For Holographic Decoy variant
+  decoySkillHaste: number;
+
+  // Trap
+  trapHealth: number;
+  trapEffectDuration: number;
+  trapRadius: number;
+  trapCharges: number;
+
+  // --- Temporary Calculation fields ---
+  totalArmorBonus: number;
 }
+
 
 export interface ActiveSetInfo {
   id: GearSetId;
@@ -397,12 +466,13 @@ export interface CalculatedStats extends CalculatedStatsBase {
   brandSetBonuses: { name: string; description: string }[];
   gearSetInfo: ActiveSetInfo[];
   activeWeaponTalents: ActiveWeaponTalentInfo[];
+  specializationBonuses: { name: string; description: string }[];
 }
 
 export interface SelectorItem {
   id: string;
   name: string;
-  type: 'brand' | 'gearset' | 'nameditem' | 'modType' | 'mod' | 'skill' | 'skillModOption' | 'weaponCategory' | 'weapon' | 'weaponAttachmentOption' | 'weaponTalent';
+  type: 'brand' | 'gearset' | 'nameditem' | 'modType' | 'mod' | 'skill' | 'skillModOption' | 'weaponCategory' | 'weapon' | 'weaponAttachmentOption' | 'weaponTalent' | 'specialization' | 'skillVariant';
   colorName?: 'red' | 'blue' | 'yellow' | 'purple' | 'emerald' | 'defaultYellow' | 'gold' | 'orange' | 'teal' | 'exoticRed' | 'cyan';
   description?: string;
   modType?: GearModType; // Used when item.type is 'mod' to filter

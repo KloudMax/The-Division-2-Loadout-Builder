@@ -8,6 +8,7 @@ interface GearItemCardProps {
   selectedPiece: SelectedGearPiece;
   onUpdatePiece: (slotId: SelectedGearPiece['slotId'], updates: Partial<SelectedGearPiece>) => void;
   setModalState: React.Dispatch<React.SetStateAction<ModalState>>;
+  canEquipExotic: boolean;
 }
 
 const AttributeButton: React.FC<{ attributeId: string | null; attributeData: Record<string, { name: string; color?: string; description?: string }>; onClick: () => void; placeholder: string; typeColor?: string }> = ({ attributeId, attributeData, onClick, placeholder }) => {
@@ -36,7 +37,7 @@ const AttributeButton: React.FC<{ attributeId: string | null; attributeData: Rec
 };
 
 
-const GearItemCard: React.FC<GearItemCardProps> = ({ gearSlotConfig, selectedPiece, onUpdatePiece, setModalState }) => {
+const GearItemCard: React.FC<GearItemCardProps> = ({ gearSlotConfig, selectedPiece, onUpdatePiece, setModalState, canEquipExotic }) => {
   const { id: slotId, name, canHaveTalent, maxModSlots } = gearSlotConfig;
 
   const openItemSelector = () => {
@@ -67,7 +68,12 @@ const GearItemCard: React.FC<GearItemCardProps> = ({ gearSlotConfig, selectedPie
         case GearSlotId.Mask: namedItemsForSlotRaw = ALL_NAMED_MASK_ITEMS_LIST; namedItemSourceData = NAMED_MASK_ITEMS_DATA; break;
     }
 
-    const namedItemsForSlot: SelectorItem[] = namedItemsForSlotRaw.map(ni => {
+    const filteredNamedItemsRaw = namedItemsForSlotRaw.filter(ni => {
+        const isExotic = ni.brandId === 'exoticPlaceholderBrand';
+        return !isExotic || canEquipExotic;
+    });
+
+    const namedItemsForSlot: SelectorItem[] = filteredNamedItemsRaw.map(ni => {
         const isExotic = ni.brandId === 'exoticPlaceholderBrand';
         const talentDescription = ni.talentId && TALENTS_DATA[ni.talentId] ? `Talent: ${TALENTS_DATA[ni.talentId].name}` : (ni.specialAttributeDescription || 'Unique Item');
         return { 
@@ -364,8 +370,7 @@ const GearItemCard: React.FC<GearItemCardProps> = ({ gearSlotConfig, selectedPie
         )}
         
         {!intrinsicTalentDisplay && !showGenericTalentSelectorButton && 
-         !(selectedPiece.itemType === 'nameditem' && selectedItemDetails && (selectedItemDetails as NamedItemInfo).specialAttributeDescription) && 
-         !canHaveTalent && (
+         !(selectedPiece.itemType === 'nameditem' && selectedItemDetails && (selectedItemDetails as NamedItemInfo).specialAttributeDescription) && (
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Talent / Unique Property</label>
             <div className="w-full p-2 border-2 border-gray-700 bg-gray-700 rounded text-left opacity-70">

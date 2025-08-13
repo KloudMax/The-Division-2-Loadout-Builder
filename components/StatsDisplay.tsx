@@ -34,85 +34,93 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, skill1State, skill2S
     let relevantStats: JSX.Element[] = [];
 
     switch (skillId) {
-      case SkillNameId.ChemLauncher:
+      case SkillNameId.Pulse:
         relevantStats = [
-          <StatItem key="clbs" label="Burn Strength" value={skillStats.chemLauncherBurnStrength} unit="%" smallText />,
-          <StatItem key="cldmg" label="Damage" value={skillStats.chemLauncherDamage} unit="%" smallText />,
-          <StatItem key="cleh" label="Ensnare Health" value={skillStats.chemLauncherEnsnareHealth} unit="%" smallText />,
-          <StatItem key="cled" label="Ensnare Duration" value={skillStats.chemLauncherEnsnareDuration} unit="%" smallText />,
-          <StatItem key="clh" label="Heal" value={skillStats.chemLauncherHeal} unit="%" smallText />,
-          <StatItem key="cla" label="Ammo" value={skillStats.chemLauncherAmmo} smallText />,
-          <StatItem key="cldur" label="Duration" value={skillStats.chemLauncherDuration} unit="%" smallText />,
-          <StatItem key="clr" label="Radius" value={skillStats.chemLauncherRadius} unit="%" smallText />,
-          <StatItem key="clsh" label="Skill Haste (Chem)" value={skillStats.chemLauncherSkillHaste} unit="%" smallText />,
+            <StatItem key="plsradius" label="Radius" value={skillStats.pulseRadius} unit="%" smallText />,
+            <StatItem key="plsdur" label="Effect Duration" value={skillStats.pulseEffectDuration} unit="%" smallText />,
+            <StatItem key="plscharges" label="Charges" value={skillStats.pulseCharges} smallText />,
+            <StatItem key="plshaste" label="Skill Haste (Pulse)" value={skillStats.pulseSkillHaste} unit="%" smallText />,
         ];
         break;
-      case SkillNameId.Decoy:
+      case SkillNameId.Turret:
         relevantStats = [
-          <StatItem key="dch" label="Health" value={skillStats.decoyHealth} unit="%" smallText />,
-          <StatItem key="dcdur" label="Duration" value={skillStats.decoyDuration} unit="%" smallText />,
-          <StatItem key="dcdd" label="Deflect Duration" value={skillStats.decoyDeflectDuration} unit="%" smallText />,
-        ];
-        break;
-      case SkillNameId.Drone:
-        relevantStats = [
-            <StatItem key="drar" label="Armor Repair" value={skillStats.droneArmorRepair} unit="%" smallText />,
-            <StatItem key="drdmg" label="Damage" value={skillStats.droneDamage} unit="%" smallText />,
-            <StatItem key="drdr" label="Damage Reduction" value={skillStats.droneDamageReduction} unit="%" smallText />,
-            <StatItem key="dreb" label="Extra Bombs" value={skillStats.droneExtraBombs} smallText />,
-            <StatItem key="drh" label="Health" value={skillStats.droneHealth} unit="%" smallText />,
-            <StatItem key="drsr" label="Scan Range" value={skillStats.droneScanRange} unit="%" smallText />,
-        ];
-        break;
-      case SkillNameId.Firefly:
-        relevantStats = [
-            <StatItem key="ffbed" label="Blind Effect Duration" value={skillStats.fireflyBlindEffectDuration} unit="%" smallText />,
-            <StatItem key="ffdmg" label="Damage" value={skillStats.fireflyDamage} unit="%" smallText />,
-            <StatItem key="ffs" label="Speed" value={skillStats.fireflySpeed} unit="%" smallText />,
-            <StatItem key="ffsh" label="Skill Haste (Firefly)" value={skillStats.fireflySkillHaste} unit="%" smallText />,
-            <StatItem key="ffmt" label="Max Targets" value={skillStats.fireflyMaxTargets} smallText />,
+            <StatItem key="turretdmg" label="Damage" value={skillStats.turretDamage} unit="%" smallText />,
+            <StatItem key="turrethealth" label="Health" value={skillStats.turretHealth} unit="%" smallText />,
+            <StatItem key="turretdur" label="Duration" value={skillStats.turretDuration} unit="%" smallText />,
+            <StatItem key="turretammo" label="Ammo" value={skillStats.turretAmmo} smallText />,
         ];
         break;
       case SkillNameId.Hive:
         relevantStats = [
             <StatItem key="hivdmg" label="Damage" value={skillStats.hiveDamage} unit="%" smallText />,
             <StatItem key="hivh" label="Healing" value={skillStats.hiveHealing} unit="%" smallText />,
-            <StatItem key="hivra" label="Revived Armor" value={skillStats.hiveRevivedArmor} unit="%" smallText />,
-            <StatItem key="hivse" label="Stim Efficiency" value={skillStats.hiveStimEfficiency} unit="%" smallText />,
-            <StatItem key="hivr" label="Radius" value={skillStats.hiveRadius} unit="%" smallText />,
-            <StatItem key="hivrc" label="Repair Charges" value={skillStats.hiveRepairCharges} smallText />,
-            <StatItem key="hivsc" label="Stim Charges" value={skillStats.hiveStimCharges} smallText />,
-            <StatItem key="hivstc" label="Stinger Charges" value={skillStats.hiveStingerCharges} smallText />,
+            <StatItem key="hivradius" label="Radius" value={skillStats.hiveRadius} unit="%" smallText />,
             <StatItem key="hivdur" label="Duration" value={skillStats.hiveDuration} unit="%" smallText />,
             <StatItem key="hivhealth" label="Health" value={skillStats.hiveHealth} unit="%" smallText />,
+            <StatItem key="hivcharges" label="Charges" value={skillStats.hiveStingerCharges} smallText />,
         ];
         break;
-      case SkillNameId.Pulse:
+      case SkillNameId.ChemLauncher:
         relevantStats = [
-            <StatItem key="plscs" label="Cone Size" value={skillStats.pulseConeSize} unit="%" smallText />,
-            <StatItem key="plsr" label="Radius" value={skillStats.pulseRadius} unit="%" smallText />,
-            <StatItem key="plsed" label="Effect Duration" value={skillStats.pulseEffectDuration} unit="%" smallText />,
-            <StatItem key="plshlth" label="Health" value={skillStats.pulseHealth} unit="%" smallText />,
-            <StatItem key="plssh" label="Skill Haste (Pulse)" value={skillStats.pulseSkillHaste} unit="%" smallText />,
+          <StatItem key="cldmg" label="Damage" value={skillStats.chemLauncherDamage} unit="%" smallText />,
+          <StatItem key="clh" label="Heal" value={skillStats.chemLauncherHeal} unit="%" smallText />,
+          <StatItem key="clr" label="Radius" value={skillStats.chemLauncherRadius} unit="%" smallText />,
+          <StatItem key="cleh" label="Ensnare Health" value={skillStats.chemLauncherEnsnareHealth} unit="%" smallText />,
+          <StatItem key="cla" label="Ammo" value={skillStats.chemLauncherAmmo} smallText />,
+        ];
+        break;
+      case SkillNameId.Firefly:
+        relevantStats = [
+            <StatItem key="ffdmg" label="Damage" value={skillStats.fireflyDamage} unit="%" smallText />,
+            <StatItem key="ffhealth" label="Health" value={skillStats.fireflyHealth} unit="%" smallText />,
+            <StatItem key="ffspeed" label="Speed" value={skillStats.fireflySpeed} unit="%" smallText />,
+            <StatItem key="ffmt" label="Max Targets" value={skillStats.fireflyMaxTargets} smallText />,
         ];
         break;
       case SkillNameId.SeekerMine:
         relevantStats = [
             <StatItem key="smdmg" label="Damage" value={skillStats.seekerMineDamage} unit="%" smallText />,
-            <StatItem key="smr" label="Radius" value={skillStats.seekerMineRadius} unit="%" smallText />,
-            <StatItem key="smsh" label="Skill Haste (Seeker)" value={skillStats.seekerMineSkillHaste} unit="%" smallText />,
-            <StatItem key="smh" label="Healing" value={skillStats.seekerMineHealing} unit="%" smallText />,
-            <StatItem key="smcm" label="Cluster Mines" value={skillStats.seekerMineClusterMines} smallText />,
             <StatItem key="smhealth" label="Health" value={skillStats.seekerMineHealth} unit="%" smallText />,
+            <StatItem key="smr" label="Radius" value={skillStats.seekerMineRadius} unit="%" smallText />,
+            <StatItem key="smh" label="Healing" value={skillStats.seekerMineHealing} unit="%" smallText />,
+        ];
+        break;
+      case SkillNameId.Drone:
+        relevantStats = [
+            <StatItem key="drdmg" label="Damage" value={skillStats.droneDamage} unit="%" smallText />,
+            <StatItem key="drh" label="Health" value={skillStats.droneHealth} unit="%" smallText />,
+            <StatItem key="drdur" label="Duration" value={skillStats.droneDuration} unit="%" smallText />,
+            <StatItem key="drar" label="Armor Repair" value={skillStats.droneArmorRepair} unit="%" smallText />,
         ];
         break;
       case SkillNameId.Shield:
         relevantStats = [
-            <StatItem key="shdbpe" label="Damage Bonus (Per Enemy)" value={skillStats.shieldDamageBonusPerEnemy} unit="%" smallText />,
-            <StatItem key="shddd" label="Deflector Damage" value={skillStats.shieldDeflectorDamage} unit="%" smallText />,
-            <StatItem key="shdhr" label="Holstered Regen" value={skillStats.shieldHolsteredRegeneration} unit="%" smallText />,
             <StatItem key="shdhealth" label="Shield Health" value={skillStats.shieldHealth} unit="%" smallText />,
             <StatItem key="shdar" label="Active Regen" value={skillStats.shieldActiveRegeneration} unit="%" smallText />,
+            <StatItem key="shdhr" label="Holstered Regen" value={skillStats.shieldHolsteredRegeneration} unit="%" smallText />,
+            <StatItem key="shddd" label="Deflector Damage" value={skillStats.shieldDeflectorDamage} unit="%" smallText />,
+        ];
+        break;
+      case SkillNameId.StickyBomb:
+        relevantStats = [
+            <StatItem key="stickydmg" label="Damage" value={skillStats.stickyBombDamage} unit="%" smallText />,
+            <StatItem key="stickyradius" label="Radius" value={skillStats.stickyBombRadius} unit="%" smallText />,
+            <StatItem key="stickydur" label="Effect Duration" value={skillStats.stickyBombEffectDuration} unit="%" smallText />,
+            <StatItem key="stickyammo" label="Ammo" value={skillStats.stickyBombAmmo} smallText />,
+        ];
+        break;
+      case SkillNameId.Decoy:
+        relevantStats = [
+          <StatItem key="dch" label="Health" value={skillStats.decoyHealth} unit="%" smallText />,
+          <StatItem key="dcdur" label="Duration" value={skillStats.decoyDuration} unit="%" smallText />,
+        ];
+        break;
+      case SkillNameId.Trap:
+        relevantStats = [
+            <StatItem key="traphealth" label="Health" value={skillStats.trapHealth} unit="%" smallText />,
+            <StatItem key="trapradius" label="Radius" value={skillStats.trapRadius} unit="%" smallText />,
+            <StatItem key="trapdur" label="Effect Duration" value={skillStats.trapEffectDuration} unit="%" smallText />,
+            <StatItem key="trapcharges" label="Charges" value={skillStats.trapCharges} smallText />,
         ];
         break;
       default:
@@ -150,6 +158,9 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, skill1State, skill2S
         <StatItem label="Marksman Rifle Dmg" value={stats.marksmanRifleDamage} unit="%" colorClass="text-red-400" />
         <StatItem label="SMG Dmg" value={stats.smgDamage} unit="%" colorClass="text-red-400" />
         <StatItem label="Shotgun Dmg" value={stats.shotgunDamage} unit="%" colorClass="text-red-400" />
+        <StatItem label="Rifle Dmg" value={stats.rifleDamage} unit="%" colorClass="text-red-400" />
+        <StatItem label="LMG Dmg" value={stats.lmgDamage} unit="%" colorClass="text-red-400" />
+        <StatItem label="Pistol Dmg" value={stats.pistolDamage} unit="%" colorClass="text-red-400" />
         <StatItem label="Damage to Armor" value={stats.damageToArmor} unit="%" colorClass="text-red-400" />
         <StatItem label="Damage to Health" value={stats.damageToHealth} unit="%" colorClass="text-red-400" />
         <StatItem label="Dmg to Target Out of Cover" value={stats.damageToTargetsOutOfCover} unit="%" colorClass="text-red-400" />
@@ -163,7 +174,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, skill1State, skill2S
         <StatItem label="Armor On Kill" value={stats.armorOnKill.toLocaleString()} colorClass="text-blue-400" />
         <StatItem label="Health On Kill" value={stats.healthOnKill.toLocaleString()} colorClass="text-blue-400" />
         <StatItem label="Protection from Elites" value={stats.protectionFromElites} unit="%" colorClass="text-blue-400" />
-        <StatItem label="Hazard Protection (from Minor Attr.)" value={stats.hazardProtection} unit="%" colorClass="text-blue-400" />
+        <StatItem label="Hazard Protection" value={stats.hazardProtection} unit="%" colorClass="text-blue-400" />
         <StatItem label="Incoming Repairs" value={stats.incomingRepairs} unit="%" colorClass="text-blue-400" />
         <StatItem label="Bleed Resistance" value={stats.bleedResistance} unit="%" colorClass="text-blue-400" />
         <StatItem label="Blind/Deaf Resistance" value={stats.blindDeafResistance} unit="%" colorClass="text-blue-400" />
@@ -183,6 +194,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, skill1State, skill2S
         <StatItem label="Skill Repair (Global)" value={stats.skillRepair} unit="%" colorClass="text-yellow-400" />
         <StatItem label="Skill Duration (Global)" value={stats.skillDuration} unit="%" colorClass="text-yellow-400" />
         <StatItem label="Status Effects (Global)" value={stats.statusEffects} unit="%" colorClass="text-yellow-400" />
+        <StatItem label="Explosive Damage (Global)" value={stats.explosiveDamage} unit="%" colorClass="text-yellow-400" />
       </div>
       
       {skill1State?.skillId && (
@@ -203,7 +215,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, skill1State, skill2S
         <StatItem label="Weapon Handling" value={stats.weaponHandling} unit="%" />
         <StatItem label="Rate of Fire" value={stats.rateOfFire} unit="%" />
         <StatItem label="Ammo Capacity" value={stats.ammoCapacity} unit="%" />
-        <StatItem label="Magazine Size" value={stats.magazineSize} unit="%" />
+        <StatItem label="Magazine Size" value={stats.magazineSize} unit="%" /> {/* This is typically from brand/set bonuses, not a direct moddable stat in this UI */}
         <StatItem label="Signature Weapon Dmg" value={stats.signatureWeaponDamage} unit="%" />
       </div>
 
@@ -212,7 +224,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, skill1State, skill2S
           <h3 className="text-md font-semibold text-yellow-400 mb-2">Active Brand Bonuses</h3>
           <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
             {stats.brandSetBonuses.map((bonus, index) => (
-              <li key={index}><span className="font-medium text-yellow-300">{bonus.name}</span>: {bonus.description.substring(bonus.description.indexOf(': ') + 2)}</li>
+              <li key={index}><span className="font-medium text-yellow-300">{bonus.name}</span>: {bonus.description}</li>
             ))}
           </ul>
         </div>
@@ -256,9 +268,22 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, skill1State, skill2S
           })}
         </div>
       )}
+      
+      {stats.specializationBonuses.length > 0 && (
+        <div className="mt-4 pt-3 border-t border-gray-700">
+          <h3 className="text-md font-semibold text-cyan-400 mb-2">Active Specialization Bonuses</h3>
+           <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
+            {stats.specializationBonuses.map((bonus, index) => (
+              <li key={`spec-bonus-${index}`}>
+                <span className="font-medium text-cyan-300">{bonus.name}</span>: {bonus.description}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
 
-      <p className="text-xs text-gray-500 mt-6">Note: Complex talent interactions, diminishing returns, and some specific named item effects are not fully simulated. Base stats are approximate for Lvl 40. Resistances from mods are additive.</p>
+      <p className="text-xs text-gray-500 mt-6">Note: Complex talent interactions, diminishing returns, and some specific named item effects are not fully simulated. Base stats are approximate for Lvl 40. Resistances from mods are additive. Brand/Set bonus parsing is indicative for common stats.</p>
     </div>
   );
 };
